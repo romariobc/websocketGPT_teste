@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat de Suporte ao Cliente com IA</title>
+    <style>
+        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; }
+        .message { margin-bottom: 10px; }
+        .user { text-align: right; color: blue; }
+        .ai { text-align: left; color: green; }
+    </style>
+</head>
+<body>
+    <h1>Chat de Suporte ao Cliente com IA</h1>
+    <div id="chatPanel">
+        <div id="messages"></div>
+        <input type="text" id="messageInput" placeholder="Digite sua mensagem">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:3000');
+        let clientId;
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            switch(data.type) {
+                case 'connected':
+                    clientId = data.clientId;
+                    displayMessage('Sistema', 'Conectado ao suporte. Como posso ajudar?');
+                    break;
+                case 'chat':
+                    displayMessage(data.senderId, data.message);
+                    break;
+                case 'error':
+                    displayMessage('Sistema', data.message);
+                    break;
+            }
+        };
+
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (message) {
+                socket.send(JSON.stringify({ type: 'chat', message }));
+                displayMessage('Você', message);
+                document.getElementById('messageInput').value = '';
+            }
+        }
+
+        function displayMessage(sender, message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender.toLowerCase()}`;
+            messageElement.textContent = `${sender}: ${message}`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
